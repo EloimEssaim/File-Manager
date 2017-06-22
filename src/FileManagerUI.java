@@ -1,8 +1,11 @@
+
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.lang.*;
 import java.awt.*;
 import javax.swing.*;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.*;
 
 public class FileManagerUI extends JFrame
@@ -180,9 +183,9 @@ class catalogPanel extends JPanel//目录面板
 {
     private JScrollPane catalogPane;
 
-    private final static DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");//根目录作为根结点
-    private final static DefaultTreeModel model=new DefaultTreeModel(root);
-    private final static JTree catalogTree=new JTree(model);
+    private DefaultMutableTreeNode root = new DefaultMutableTreeNode("root");//根目录作为根结点
+    private DefaultTreeModel model=new DefaultTreeModel(root);
+    private JTree catalogTree=new JTree(model);
 
     public catalogPanel()
     {
@@ -190,8 +193,24 @@ class catalogPanel extends JPanel//目录面板
         catalogPane.setViewportView(catalogTree);
         catalogTree.setToolTipText("File Catalog");
         catalogTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+
+        catalogTree.addTreeSelectionListener(new TreeSelectionListener()
+        {
+            @Override
+            public void valueChanged(TreeSelectionEvent e)
+            {
+                DefaultMutableTreeNode node=(DefaultMutableTreeNode)catalogTree.getLastSelectedPathComponent();
+                if(node==null)
+                    return;
+
+            }
+        });
+
         add(catalogPane);
+
     }
+
+
 
 
 }
