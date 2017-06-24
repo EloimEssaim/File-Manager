@@ -10,6 +10,7 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeSelectionModel;
 import java.lang.*;
+import java.text.SimpleDateFormat;
 
 public class FileManager extends JFrame
 {
@@ -19,9 +20,9 @@ public class FileManager extends JFrame
         userInterface ui=new userInterface(myFileSystem);
         ui.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         ui.show();
-
     }
 }
+
 
 class userInterface extends JFrame
 {
@@ -37,7 +38,7 @@ class userInterface extends JFrame
 
         setTitle("File Manager");
         setSize(WIDTH,HEIGHT);
-        setLayout(new GridLayout(3,1));
+        setLayout(new GridLayout(1,3));
 
         this.system=system;
 
@@ -79,14 +80,44 @@ class informationPanel extends JPanel
 
 class openFileWindow extends JFrame
 {
-    public openFileWindow()
+    private JMenuItem menuItem;
+    private JMenuBar menuBar;
+    private JMenu menu;
+    private JTextArea textArea;
+    private JScrollPane scrollPane;
+
+    public openFileWindow(FCB openFCB)
     {
-        JMenuItem jMenuItem = new JMenuItem("保存");
-        JMenuBar jMenuBar = new JMenuBar();
-        JMenu jMenu = new JMenu();
-        JTextArea jTextArea = new JTextArea();
+        menuBar = new JMenuBar();
+        menuItem = new JMenuItem("保存");
+
+        menu = new JMenu();
+        menu.setText("文件"+openFCB.getFileName());
+        menu.add(menuItem);
+
+        menuBar.add(menu);
+
+        textArea = new JTextArea();
+        textArea.setLineWrap(true);// 激活自动换行功能
+        textArea.setWrapStyleWord(true);// 激活断行不断字功能
+        textArea.setBackground(Color.WHITE);
+
+        scrollPane= new JScrollPane(textArea);
+
+        add(scrollPane);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setJMenuBar(menuBar);
+
+        this.setSize(400, 400);
+        this.setLocation(500, 300);
+        this.setVisible(true);
+
+
     }
+
+
 }
+
 
 class buttonPanel extends JPanel
 {
@@ -100,7 +131,8 @@ class buttonPanel extends JPanel
     private JButton closeFileButton;//关闭文件
     private JButton formatButton;//格式化
     private JButton deleteButton;//删除文件夹或文件
-    private JButton renameButton;
+    private JButton renameButton;//重命名文件或文件夹
+    private JButton propertyButton;//查看文件或文件夹属性
 
     public buttonPanel(userInterface ui,fileSystem system,catalogPanel catalogPane)
     {
@@ -108,7 +140,8 @@ class buttonPanel extends JPanel
         this.system=system;
         this.catalogPane=catalogPane;
 
-        setLayout(new GridLayout(1,7));
+
+        setLayout(new GridLayout(8,1));
         createFolderButton =new JButton("Create Folder");
         createFileButton=new JButton("Create File");
         openFileButton=new JButton("Open File");
@@ -116,6 +149,7 @@ class buttonPanel extends JPanel
         formatButton=new JButton("Formatting");
         deleteButton=new JButton("Delete");
         renameButton=new JButton("Rename");
+        propertyButton=new JButton("Property");
 
         //添加按钮响应函数
         createFolderButton.addActionListener(createFolderListener);
@@ -125,6 +159,7 @@ class buttonPanel extends JPanel
         formatButton.addActionListener(formatListener);
         deleteButton.addActionListener(deleteListener);
         renameButton.addActionListener(renameListener);
+        propertyButton.addActionListener(propertyListener);
 
         add(createFileButton);
         add(createFolderButton);
@@ -132,6 +167,8 @@ class buttonPanel extends JPanel
         add(closeFileButton);
         add(formatButton);
         add(deleteButton);
+        add(renameButton);
+        add(propertyButton);
     }
 
     //创建文件按钮响应函数
@@ -150,10 +187,12 @@ class buttonPanel extends JPanel
                 dialog.setVisible(true);
                 String fileName=(String)optionPane.getInputValue();//获取输入的文件名
 
+                FCB createdFile=system.createFile(fileName,catalogPane.selectedFCB);//创建文件
 
-                FCB createdFile=system.createFile(fileName,catalogPane.selectedFCB.getFileName());//创建文件
-                File entityFile=new File(fileName+".txt");//创建实体文件
-                catalogPane.addNewNode(createdFile);
+                if(createdFile==null)
+                     JOptionPane.showMessageDialog(null,"同一文件夹下，文件和文件不能重名~！");
+                else
+                    catalogPane.addNewNode(createdFile);
             }
 
         }
@@ -178,8 +217,12 @@ class buttonPanel extends JPanel
                     dialog.setVisible(true);
                     String folderName=(String)optionPane.getInputValue();//获取输入的文件夹名
 
-                    FCB createdFolder=system.createFolder(folderName,catalogPane.selectedFCB.getFileName());
-                    catalogPane.addNewNode(createdFolder);
+                    FCB createdFolder=system.createFolder(folderName,catalogPane.selectedFCB);
+
+                    if(createdFolder==null)
+                         JOptionPane.showMessageDialog(null,"同一文件夹下文件夹和文件夹不能重名~！");
+                    else
+                        catalogPane.addNewNode(createdFolder);
                 }
 
                 else if(catalogPane.selectedFCB.getFcbType()==FCB_TYPE.FILE)
@@ -203,7 +246,7 @@ class buttonPanel extends JPanel
                 JOptionPane.showMessageDialog(null,"请选择要打开的文件或文件夹~！");
             else
             {
-
+                openFileWindow fileWindow=new openFileWindow(catalogPane.selectedFCB);
             }
         }
     };
@@ -234,7 +277,9 @@ class buttonPanel extends JPanel
                 JOptionPane.showMessageDialog(null,"请选择要格式化的文件或文件夹~！");
             else
             {
-
+                int n=JOptionPane.showConfirmDialog(null,"确定格式化?","格式化",JOptionPane.YES_NO_OPTION);
+                if(n==0)
+                    system.format(catalogPane.selectedFCB);
             }
         }
     };
@@ -248,7 +293,7 @@ class buttonPanel extends JPanel
                 JOptionPane.showMessageDialog(null,"请选择要删除的文件或文件夹~！");
             else
             {
-                if(catalogPane.selectedNode.isRoot())
+                if(catalogPane.selectedNode.isRoot())//选取了节点，但是选取的是根目录
                 {
                     JOptionPane.showMessageDialog(null,"不能删除根目录~！");
                 }
@@ -277,7 +322,44 @@ class buttonPanel extends JPanel
     {
         public void actionPerformed(ActionEvent e)
         {
+            if(catalogPane.selectedNode==null)//如果没有选择目录节点，无法查看属性
+                JOptionPane.showMessageDialog(null,"请选择要重命名的文件或文件夹~！");
+            else
+            {
 
+                if(catalogPane.selectedNode.isRoot())
+                {
+                    JOptionPane.showMessageDialog(null,"不能重命名根目录~！");
+                }
+
+                else
+                {
+                    JOptionPane optionPane=new JOptionPane("请输入新的文件名", JOptionPane.QUESTION_MESSAGE, JOptionPane.CANCEL_OPTION);
+                    JDialog dialog = optionPane.createDialog("重命名");
+                    optionPane.setWantsInput(true);
+                    dialog.setVisible(true);
+                    String newFileName=(String)optionPane.getInputValue();//获取输入的文件名
+
+                    system.rename(newFileName,catalogPane.selectedFCB);
+                    catalogPane.setNodeName(newFileName);
+                }
+
+            }
+        }
+    };
+
+    //查看属性按钮响应函数
+    ActionListener propertyListener=new ActionListener()
+    {
+        public void actionPerformed(ActionEvent e)
+        {
+            if(catalogPane.selectedNode==null)//如果没有选择目录节点，无法查看属性
+                JOptionPane.showMessageDialog(null,"请选择要查看属性的文件或文件夹~！");
+            else
+            {
+                String fcbProperty=catalogPane.selectedFCB.getProperty();
+                JOptionPane.showMessageDialog(null,fcbProperty);
+            }
         }
     };
 
@@ -307,7 +389,7 @@ class catalogPanel extends JPanel
         this.nodeFCBMap=new HashMap<DefaultMutableTreeNode,FCB>();
 
         catalogPane=new JScrollPane();
-        catalogPane.setPreferredSize(new Dimension(1000,400));
+        catalogPane.setPreferredSize(new Dimension(340,600));
         catalogPane.setViewportView(catalogTree);
         catalogTree.setToolTipText("File Catalog");
         catalogTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
@@ -323,7 +405,6 @@ class catalogPanel extends JPanel
                 {
                     selectedNode=(DefaultMutableTreeNode)catalogTree.getLastSelectedPathComponent();
                     selectedFCB=nodeFCBMap.get(selectedNode);//获取选中树节点映射的FCB
-                    System.out.println("选中"+selectedFCB.getFileName());
                 }
 
 
@@ -346,9 +427,14 @@ class catalogPanel extends JPanel
 
     public void deleteNode(DefaultMutableTreeNode node)
     {
-        model.removeNodeFromParent(node);//可能会出BUG!!!!!!!!!!!!!!!!!!!1
+        model.removeNodeFromParent(node);
         FCB fcb=nodeFCBMap.get(node);
         nodeFCBMap.remove(fcb);//从map中删除
+    }
+
+    public void setNodeName(String newName)
+    {
+        selectedNode.setUserObject(newName);
     }
 
 
@@ -379,10 +465,10 @@ class fileSystem
 
     public FAT getFatList(){return fatList;}//获取FAT
 
-    public FCB createFile(String name,String folderName)//创建文件
+    public FCB createFile(String name,FCB folderFCB)//创建文件
     {
         //检查是否重名
-        if(checkDuplicateName(name,folderName)==true)
+        if(checkDuplicateName(name,FCB_TYPE.FILE,folderFCB)==true)
         {
             return null;
         }
@@ -401,10 +487,10 @@ class fileSystem
                 fatList.setEndBlock(blockId);//设块内容为-1（因为文件目前还为空）
 
 
-                FCB folderFCB=getFCB(name,folderName);//遍历目录链表，找到文件的父文件夹
-                fileFCB.setFolderFCB(folderFCB);
+                FCB folder=getFCB(name,folderFCB);//遍历目录链表，找到文件的父文件夹
+                fileFCB.setFolderFCB(folder);
 
-                System.out.println("文件夹"+folderName+"下的名为"+name+"的文件被创建了");
+                System.out.println("文件夹"+folderFCB.getFileName()+"下的名为"+name+"的文件被创建了");
 
                 folderFCB.addChildren(fileFCB);//父文件夹的子链表插入儿子
 
@@ -421,10 +507,10 @@ class fileSystem
         }
     }
 
-    public FCB createFolder(String name,String folderName)
+    public FCB createFolder(String name,FCB parentFolderFCB)
     {
         //检查同一路径下是否重名,若重名则无法创建
-        if(checkDuplicateName(name,folderName)==true)
+        if(checkDuplicateName(name,FCB_TYPE.FOLDER,parentFolderFCB)==true)
         {
             return null;
         }
@@ -432,15 +518,14 @@ class fileSystem
         //若不重名，则创建文件夹
         else
         {
-            FCB folderFCB=new FCB(name,folderName,FCB_TYPE.FOLDER);//创建文件夹FCB
+            FCB folderFCB=new FCB(name,parentFolderFCB,FCB_TYPE.FOLDER);//创建文件夹FCB
+            FCB parent=getFCB(name,parentFolderFCB);//遍历目录链表，找到文件夹的父文件夹
+            folderFCB.setFolderFCB(parent); //设置文件夹的父文件夹
 
-            FCB parentFolderFCB=getFCB(name,folderName);
-            parentFolderFCB.addChildren(folderFCB);//加入父文件夹子链表
-            folderFCB.setFolderFCB(parentFolderFCB);
+            System.out.println("文件夹"+parentFolderFCB.getFileName()+"下的名为"+name+"的文件夹被创建了");
+            parent.addChildren(folderFCB);//父文件夹的子链表中插入FCB
 
-            System.out.println("文件夹"+folderName+"下的名为"+name+"的文件夹被创建了");
-            parentFolderFCB.addChildren(folderFCB);//父文件夹的子链表中插入FCB
-            fileCatalog.add(folderFCB);
+            fileCatalog.add(folderFCB); //加入目录链表
             return folderFCB;
         }
 
@@ -465,6 +550,23 @@ class fileSystem
         }
     }
 
+
+    //删除空文件夹
+    public void deleteEmptyFolder(FCB fcbToDelete)
+    {
+        for(Iterator iter=fileCatalog.iterator();iter.hasNext();)
+        {
+            FCB indexFCB=(FCB)iter.next();
+            if(indexFCB==fcbToDelete)
+            {
+                fileCatalog.remove(fcbToDelete);
+                System.out.println("文件夹"+fcbToDelete.getFileName()+"已被删除");
+                break;
+            }
+        }
+    }
+
+
     //删除文件夹
     public void deleteFolder(FCB fcbToDelete)
     {
@@ -486,11 +588,16 @@ class fileSystem
 
                     else if(content.getFcbType()==FCB_TYPE.FOLDER)
                     {
-                        deleteFolder(content);//递归删除文件夹中全部内容
+                        if(content.childrenList.size()!=0)
+                            deleteFolder(content);//递归删除文件夹中全部内容
+                        else//如果为最后一个文件夹且为空
+                        {
+                            deleteEmptyFolder(content);
+                        }
                     }
 
                 }
-
+                deleteEmptyFolder(indexFCB);
                 break;
             }
 
@@ -498,20 +605,54 @@ class fileSystem
 
     }
 
-    public void format(String name,String parentName)
+    //格式化
+    public void format(FCB fcb)
     {
+        if(fcb.getFcbType()==FCB_TYPE.FILE)//格式化文件
+        {
+            fcb.setFileSize(0);
+            fcb.setModifyTime();
+        }
 
+        else if(fcb.getFcbType()==FCB_TYPE.FOLDER)//格式化文件夹
+        {
+            for(Iterator iter=fcb.childrenList.iterator();iter.hasNext();)
+            {
+                FCB indexFCB=(FCB)iter.next();
+                format(indexFCB);
+            }
+
+            fcb.setModifyTime();
+        }
     }
 
-
-    public boolean checkDuplicateName(String name,String parentName)
+    //重命名文件、文件夹
+    public void rename(String newName,FCB fcbToRename)
     {
-        boolean isDuplicate=false;
-
         for(Iterator iter=fileCatalog.iterator();iter.hasNext();)
         {
             FCB indexFCB=(FCB)iter.next();
-            if(indexFCB.getFileName()==name&&indexFCB.getFolderFCB().getFileName()==parentName)//如果同文件夹下重名
+            if(indexFCB==fcbToRename)
+            {
+                indexFCB.setFileName(newName);
+                break;
+            }
+        }
+
+    }
+
+    //检查是否重名
+    public boolean checkDuplicateName(String name,FCB_TYPE type,FCB folderFCB)  //查找父文件夹的孩子，如果类型相同且名称相同，则重名
+    {
+        boolean isDuplicate=false;
+
+        for(Iterator iter=folderFCB.childrenList.iterator();iter.hasNext();)
+        {
+            FCB indexFCB=(FCB)iter.next();
+            String indexName=indexFCB.getFileName();
+            FCB_TYPE indexType=indexFCB.getFcbType();
+
+            if(name.equals(indexName)&&type.equals(indexType))//如果同文件夹下重名
             {
                 System.out.println(name+Constants.NAME_DUPLICATE_MESSAGE);
                 isDuplicate=true;
@@ -522,18 +663,19 @@ class fileSystem
         return isDuplicate;
     }
 
-    public FCB getFCB(String name,String parentName)
+    //根据文件名和父文件夹的fcb找到文件的fcb
+    public FCB getFCB(String name,FCB folderFCB)
     {
         FCB indexFCB=new FCB();
-        for(Iterator iter=fileCatalog.iterator();iter.hasNext();)
-        {
-            indexFCB=(FCB)iter.next();
-            if(indexFCB.getFileName()==name&&indexFCB.getFolderFCB().getFileName()==parentName)//如果同文件夹下重名
-            {
-                break;
-            }
-        }
-        return indexFCB;
+         for(Iterator iter=fileCatalog.iterator();iter.hasNext();)
+         {
+             indexFCB=(FCB)iter.next();
+             if(indexFCB==folderFCB)
+             {
+                 break;
+             }
+         }
+         return indexFCB;
     }
 
 
@@ -566,29 +708,33 @@ class FAT implements Serializable//文件FAT表
         }
     }
 
+    //释放序号为currentBlockNum的物理块，压入空闲块栈
     public void freeBlock(int currentBlockNum)
     {
         freeBlockStack[top]=currentBlockNum;//要压栈的空闲块放于栈顶
         top++;//栈顶指针移位
         fatBlockList[currentBlockNum]=Constants.BLOCK_FREE;//FAT表中该项为空
 
-    }//释放序号为currentBlockNum的物理块，压入空闲块栈
+    }
 
+    //获取空闲的物理块
     public int getFreeBlock()
     {
         top--;
         return freeBlockStack[top];
-    }//获取空闲的物理块
+    }
 
+    //获取下一块序号
     public int getNextBlock(int currentBlockNum)
     {
         return fatBlockList[currentBlockNum];
-    }//获取下一块序号
+    }
 
+    //设置块与块间链接
     public void setNextBlock(byte currentBlockNum,byte nextBlockNum)
     {
         fatBlockList[currentBlockNum]=nextBlockNum;
-    }//设置块与块间链接
+    }
 
     public int getTop()
     {
@@ -619,6 +765,7 @@ class FAT implements Serializable//文件FAT表
             return false;
     }
 
+    //删除某个文件所占全部块
     public void deleteFromFAT(int startBlockNum)
     {
         int index=startBlockNum;
@@ -627,31 +774,10 @@ class FAT implements Serializable//文件FAT表
             freeBlock(index);
             index=getNextBlock(index);
         }
-    }//删除某个文件所占全部块
+    }
 
 
 }
-
-/*class fatBlock implements Serializable
-{
-    private int maxSize=Constants.BYTE_PER_BLOCK;
-    private int blockId;
-    private int nextBlockId;
-
-    private int usedSize;
-    private boolean isUsed;
-
-    public fatBlock()
-    {
-        blockId=this.hashCode();
-        isUsed=false;
-        usedSize=0;
-        nextBlockId=Constants.BLOCK_END;
-    }
-
-}*/
-
-
 
 class FCB implements Serializable
 {
@@ -668,18 +794,26 @@ class FCB implements Serializable
     private int fileSize;//文件大小
     private int fileStartBlock;//开始盘块
 
-    private long createTime;//创建时间
-    private long modifyTime;//修改时间
+    private String createTime;//创建时间
+    private String modifyTime;//修改时间
+
+    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
 
     public FCB()
     {
         this.fileSize=0;
         this.childrenList=new LinkedList<FCB>();
-        this.createTime=System.currentTimeMillis();
-        this.modifyTime=System.currentTimeMillis();
+
+        Date date = new Date();
+        long times = date.getTime();
+        this.createTime = formatter.format(date);
+        this.modifyTime=formatter.format(date);
+
         this.isOpened=false;
     }
 
+    //构造根目录fcb
     public FCB(String name,FCB_TYPE type,int startBlock,int size)
     {
 
@@ -688,13 +822,18 @@ class FCB implements Serializable
         this.fcbType=type;
 
         this.childrenList=new LinkedList<FCB>();
-        this.createTime=System.currentTimeMillis();
-        this.modifyTime=System.currentTimeMillis();
 
         this.isOpened=false;
         this.fileStartBlock=startBlock;
         this.fileSize=size;
-    }//构造根目录fcb
+
+        Date date = new Date();
+        long times = date.getTime();
+
+        this.createTime = formatter.format(date);
+        this.modifyTime=formatter.format(date);
+
+    }
 
     public FCB(String name,FCB_TYPE type,FCB folder,int startBlock,int size)
     {
@@ -705,28 +844,63 @@ class FCB implements Serializable
 
         this.childrenList=new LinkedList<FCB>();
 
-        this.createTime=System.currentTimeMillis();
-        this.modifyTime=System.currentTimeMillis();
         this.isOpened=false;
         this.fileStartBlock=startBlock;
         this.fileSize=size;
+
+        Date date = new Date();
+        long times = date.getTime();
+        this.createTime = formatter.format(date);
+        this.modifyTime=formatter.format(date);
+
     }
 
-    public FCB(String name,String folderName,FCB_TYPE type)
+    //构造文件夹FCB
+    public FCB(String name,FCB folderFCB,FCB_TYPE type)
     {
         this.childrenList=new LinkedList<FCB>();
         this.fileName=name;
-        this.folderName=folderName;
+        this.folderFCB=folderFCB;
         this.fcbType=type;
 
-    }//构造文件夹FCB
+        Date date = new Date();
+        long times = date.getTime();
+        this.createTime = formatter.format(date);
+        this.modifyTime=formatter.format(date);
 
 
+    }
+
+    //获取文件信息
+    public String getProperty()
+    {
+        String fcbProperty="";
+        fcbProperty+="名称："+this.fileName;
+        fcbProperty+="\n";
+        fcbProperty+="类型："+this.fcbType;
+        fcbProperty+="\n";
+
+        if(this.folderFCB!=null)
+        {
+            fcbProperty+="处于文件夹："+this.folderFCB.getFileName();
+            fcbProperty+="\n";
+        }
+        fcbProperty+="大小："+this.fileSize;
+        fcbProperty+="\n";
+        fcbProperty+="创建时间："+this.createTime;
+        fcbProperty+="\n";
+        fcbProperty+="修改时间："+this.modifyTime;
+        fcbProperty+="\n";
+
+        return fcbProperty;
+    }
+
+    //获取所需块数
     public int getBlockNeeded()
     {
         return  (int)(fileSize/Constants.BYTE_PER_BLOCK);
 
-    }//获取所需块数
+    }
 
     public FCB getFolderFCB(){return folderFCB;}
 
@@ -734,11 +908,13 @@ class FCB implements Serializable
 
     public FCB_TYPE getFcbType(){return fcbType;}
 
-    public boolean getOpenedState(){return isOpened;}
-
     public String getFileName(){return fileName;}
 
+    public void setFileName(String fileName){this.fileName=fileName;}
+
     public int getFileSize(){return fileSize;}
+
+    public void setFileSize(int size){this.fileSize=size;}
 
     public int getFileStartBlock(){return fileStartBlock;}
 
@@ -746,6 +922,15 @@ class FCB implements Serializable
     {
         this.childrenList.add(fcb);
     }
+
+    public void setModifyTime()
+    {
+        Date date = new Date();
+        long times = date.getTime();
+        this.modifyTime=formatter.format(date);
+    }
+
+
 
 }
 
