@@ -16,176 +16,32 @@ public class FileManagerUI extends JFrame implements Serializable
     private static final int WIDTH = 1000;
     private static final int HEIGHT = 600;
 
+    private fileSystem system;
     private fatPanel fatPanel;
     private buttonPanel buttonPanel;
     private catalogPanel catalogPanel;
 
-    private fileSystem system;
 
-    public FileManagerUI(fileSystem sys)
+    public FileManagerUI()
     {
 
         setTitle("File Manager");
         setSize(WIDTH,HEIGHT);
         setLayout(new GridLayout(1,3));
 
-        this.system=sys;
+        this.system=new fileSystem();
         this.fatPanel=new fatPanel();
-        this.catalogPanel=new catalogPanel(this,system);
+        this.catalogPanel=new catalogPanel(system);
         this.buttonPanel=new buttonPanel(system, catalogPanel,fatPanel);
-
 
         add(fatPanel);
         add(buttonPanel);
         add(catalogPanel);
 
 
-        this.addWindowListener(new WindowAdapter()
-        {
-            @Override
-            public void windowOpened(WindowEvent e)
-            {
-
-
-            }
-        });
-
-        this.addWindowListener(new WindowAdapter()
-        {
-            @Override
-            public void windowClosing(WindowEvent e)
-            {
-                saveSystem();//关闭系统时，保存
-                saveCatalog();
-                saveFat();
-            }
-
-        });
-    }
-
-    public void saveSystem()
-    {
-        File systemFile = new File("system.ser");
-        FileOutputStream fos = null;
-        ObjectOutputStream oos = null;
-
-        try {
-            fos = new FileOutputStream(systemFile, false);
-            oos = new ObjectOutputStream(fos);
-            oos.writeObject(this.system);
-            fos.close();
-            oos.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void saveCatalog()
-    {
-        File catalogFile=new File("catalog.ser");
-        FileOutputStream fos = null;
-        ObjectOutputStream oos = null;
-
-        try {
-            fos = new FileOutputStream(catalogFile, false);
-            oos = new ObjectOutputStream(fos);
-            oos.writeObject(this.catalogPanel);
-            fos.close();
-            oos.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void saveFat()
-    {
-        File catalogFile=new File("fat.ser");
-        FileOutputStream fos = null;
-        ObjectOutputStream oos = null;
-
-        try {
-            fos = new FileOutputStream(catalogFile, false);
-            oos = new ObjectOutputStream(fos);
-            oos.writeObject(this.fatPanel);
-            fos.close();
-            oos.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
 
-    public Object readSystem()
-    {
-        File f = new File("system.ser");
-        fileSystem temp = null;
-        FileInputStream fis = null;
-        ObjectInputStream ois = null;
-        try {
-            fis = new FileInputStream(f);
-            ois =  new ObjectInputStream(fis);
-            temp = (fileSystem) ois.readObject();
-            fis.close();
-            ois.close();
-        } catch (FileNotFoundException e) {
-            temp = null;
-        } catch (IOException e) {
-            temp = null;
-        } catch (ClassNotFoundException e) {
-            temp = null;
-        }
-        return temp;
-    }
-
-    public Object readCatalog()
-    {
-        File f = new File("catalog.ser");
-        catalogPanel temp = null;
-        FileInputStream fis = null;
-        ObjectInputStream ois = null;
-        try {
-            fis = new FileInputStream(f);
-            ois =  new ObjectInputStream(fis);
-            temp = (catalogPanel) ois.readObject();
-            fis.close();
-            ois.close();
-        } catch (FileNotFoundException e) {
-            temp = null;
-        } catch (IOException e) {
-            temp = null;
-        } catch (ClassNotFoundException e) {
-            temp = null;
-        }
-        return temp;
-    }
-
-    public Object readFat()
-    {
-        File f = new File("fat.ser");
-        fatPanel temp = null;
-        FileInputStream fis = null;
-        ObjectInputStream ois = null;
-        try {
-            fis = new FileInputStream(f);
-            ois =  new ObjectInputStream(fis);
-            temp = (fatPanel) ois.readObject();
-            fis.close();
-            ois.close();
-        } catch (FileNotFoundException e) {
-            temp = null;
-        } catch (IOException e) {
-            temp = null;
-        } catch (ClassNotFoundException e) {
-            temp = null;
-        }
-        return temp;
-    }
 }
 
 
@@ -231,7 +87,7 @@ class fatPanel extends JPanel implements Serializable
 
 }
 
-class buttonPanel extends JPanel
+class buttonPanel extends JPanel implements Serializable
 {
     private fileSystem system;
     private catalogPanel catalogPane;
@@ -268,6 +124,7 @@ class buttonPanel extends JPanel
         renameButton.addActionListener(renameListener);
         propertyButton.addActionListener(propertyListener);
 
+
         add(createFileButton);
         add(createFolderButton);
         add(openFileButton);
@@ -285,6 +142,7 @@ class buttonPanel extends JPanel
         {
             if(catalogPane.selectedNode==null)
                 JOptionPane.showMessageDialog(null,"Please select a folder!");//如果不选中树形目录则无法进行操作
+
             else
             {
                 JOptionPane optionPane = new JOptionPane("Please enter the file name", JOptionPane.QUESTION_MESSAGE, JOptionPane.CANCEL_OPTION);
@@ -444,7 +302,7 @@ class buttonPanel extends JPanel
 
                 else
                 {
-                    JOptionPane optionPane=new JOptionPane("Please enter the new folder name", JOptionPane.QUESTION_MESSAGE, JOptionPane.CANCEL_OPTION);
+                    JOptionPane optionPane=new JOptionPane("Please enter the new name", JOptionPane.QUESTION_MESSAGE, JOptionPane.CANCEL_OPTION);
                     JDialog dialog = optionPane.createDialog("Rename");
                     optionPane.setWantsInput(true);
                     dialog.setVisible(true);
@@ -475,12 +333,12 @@ class buttonPanel extends JPanel
     };
 
 
+
 }
 
 //目录面板
 class catalogPanel extends JPanel implements Serializable
 {
-    private FileManagerUI ui;
     private fileSystem system;
     private JScrollPane catalogPane;
     private DefaultMutableTreeNode root = new DefaultMutableTreeNode("root");//根目录作为根结点
@@ -492,10 +350,8 @@ class catalogPanel extends JPanel implements Serializable
     public FCB selectedFCB;
     public DefaultMutableTreeNode selectedNode;
 
-    public catalogPanel(FileManagerUI ui,fileSystem system)
+    public catalogPanel(fileSystem system)
     {
-
-        this.ui=ui;
         this.system=system;
         this.nodeFCBMap=new HashMap<DefaultMutableTreeNode,FCB>();
 
@@ -558,7 +414,7 @@ class catalogPanel extends JPanel implements Serializable
 
 }
 
-class openFileWindow extends JFrame
+class openFileWindow extends JFrame implements Serializable
 {
     private JMenuItem menuItem;
     private JMenuBar menuBar;
@@ -570,7 +426,7 @@ class openFileWindow extends JFrame
 
     public openFileWindow(FCB openFCB,FAT fat,fatPanel fatPanel)
     {
-        this.fatPanel=fatPanel;
+
         this.menuBar = new JMenuBar();
         this.menuItem = new JMenuItem("save");
         this.menu = new JMenu();
@@ -588,6 +444,7 @@ class openFileWindow extends JFrame
         this.setSize(400, 400);
         this.setLocation(500, 300);
         this.setVisible(true);
+        this.fatPanel=fatPanel;
         this.fat=fat;
 
 
